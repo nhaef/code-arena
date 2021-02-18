@@ -29,8 +29,6 @@ $triangleSize: 20rem;
     height: 16rem;
 }
 
-
-/* Top Triangle */
 .triangle {
     position: absolute;
     z-index: -1;
@@ -49,8 +47,6 @@ $triangleSize: 20rem;
     right: 50%;
     border-left: $triangleSize solid transparent;
 }
-
-
 
 .quote {
     width: 60%;
@@ -122,7 +118,6 @@ button>.text {
         right: -1rem;
     }
   }
-
 
 /* Lines */
 svg {
