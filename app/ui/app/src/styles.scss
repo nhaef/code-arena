@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
+@import 'assets/constants.scss';
+
+body {
+    margin: 0;
+
+    background-color: $bg-color;
+    font-family: $font-default;
+    color: $text-default;
+}
