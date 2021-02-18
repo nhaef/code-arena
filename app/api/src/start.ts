@@ -1,4 +1,4 @@
-import express, {Application, Router} from 'express';
+import express, {Application, Request, Response, Router} from 'express';
 import {config} from 'dotenv';
 import path from 'path';
 
@@ -17,8 +17,7 @@ const router: Router = Router();
 router.use('/api', apiRouter);
 // Handle UI routes
 router.use(express.static(uiPath));
-// Handle 404 routes
-router.use((req, res, next) => res.status(404).end('This page does not exist :( :( :('));
+router.use('**', (req: Request, res: Response) => res.sendFile(path.join(uiPath, 'index.html')));
 
 app.use(router);
 app.listen(port);
