@@ -1,0 +1,136 @@
+@import '../../../assets/constants.scss';
+
+$triangleSize: 20rem;
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+
+    height: 100vh;
+    width: 100vw;
+    min-width: 2 * $triangleSize;
+
+    overflow: auto;
+}
+
+.topbar {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    min-height: $triangleSize;
+    margin-bottom: 2rem;
+}
+
+.logo {
+    width: 16rem;
+    height: 16rem;
+}
+
+
+/* Top Triangle */
+.triangle {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-top: $triangleSize solid $color-light-2;
+}
+
+.triangle-right {
+    left: 50%;
+    border-right: $triangleSize solid transparent;
+}
+
+.triangle-left {
+    right: 50%;
+    border-left: $triangleSize solid transparent;
+}
+
+
+
+.quote {
+    width: 60%;
+
+    flex: 0 0 auto;
+    font-size: 1.6rem;
+    border-left: 0.5rem solid $color-light-2;
+    padding-left: 1.5rem;
+
+    margin-bottom: 2rem;
+    margin-top: 2rem;
+}
+
+button {
+    position: relative;
+    transform: rotate(45deg);
+
+    padding: 0;
+    margin-top: 4rem;
+    margin-bottom: 4rem;
+    flex: 0 0 auto;
+
+    width: 8rem;
+    height: 8rem;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background-color: $color-action;
+}
+
+button:hover>.outline{
+    top: -1rem;
+    bottom: -1rem;
+    left: -1rem;
+    right: -1rem;
+
+    animation: scaleOutline .5s;
+}
+
+button>.outline {
+    position: absolute;
+    top: -0.5rem;
+    bottom: -0.5rem;
+    left: -0.5rem;
+    right: -0.5rem;
+    border: 2px solid white;
+    box-sizing: border-box;
+}
+
+button>.text {
+    transform: rotate(-45deg);
+
+    color: $text-default;
+    font-size: 1.8rem;
+}
+
+/* Outline onhover animation */
+@keyframes scaleOutline {
+    from {
+        top: -0.5rem;
+        bottom: -0.5rem;
+        left: -0.5rem;
+        right: -0.5rem;
+    }
+    to {
+        top: -1rem;
+        bottom: -1rem;
+        left: -1rem;
+        right: -1rem;
+    }
+  }
+
+
+/* Lines */
+svg {
+    height: 10vh;
+    width: 10vw;
+}
+
+svg>path {
+    stroke-width: 2;
+    stroke: $color-light-2;
+}

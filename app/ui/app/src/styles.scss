@@ -1,15 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
-
-$bg-color: #0a1118;
-$color-light-1: #1a5368;
-$color-light-2: #1b87b0;
-$color-action: #e26c42;
-$text-default: #fBf9f0;
+@import 'assets/constants.scss';
 
 body {
     margin: 0;
 
     background-color: $bg-color;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: $font-default;
     color: $text-default;
 }
