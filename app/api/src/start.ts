@@ -1,15 +1,15 @@
-import express, {Application, Request, Response, Router} from 'express';
-import {config} from 'dotenv';
+import { config } from 'dotenv';
+config();
+
+import express, { Application, Request, Response, Router } from 'express';
 import path from 'path';
 
-import {apiRouter} from './routes';
+import { apiRouter } from './routes';
 
-// Load environment
-config();
+// Environment
 const port = process.env.PORT || 3000;
 const uiPath = path.join(path.dirname(path.dirname(__dirname)), 'ui/app/dist/app');
 
-//Define routes
 const app: Application = express();
 const router: Router = Router();
 
