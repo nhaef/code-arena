@@ -8,7 +8,7 @@ import { apiRouter } from './routes';
 
 // Environment
 const port = process.env.PORT || 3000;
-const uiPath = path.join(path.dirname(path.dirname(__dirname)), 'ui/app/dist/app');
+const uiPath = path.join(path.dirname(path.dirname(path.dirname(path.dirname(__dirname)))), 'ui/app/dist/app');
 
 const app: Application = express();
 const router: Router = Router();
