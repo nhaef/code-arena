@@ -7,7 +7,7 @@
         "doc": "apidoc -i src/ -o apidoc/",
         "start": "node ./dist/api/src/start.js",
         "build": "tsc",
-        "build-start": "npm run build && npm run start"
+        "build-start": "npm run build && npm run doc && npm run start"
     },
     "author": "Nico H.",
     "license": "UNLICENSED",
