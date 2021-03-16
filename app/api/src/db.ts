@@ -10,19 +10,14 @@ export function getMongoClient(): MongoClient {
     });
 }
 
-export async function getUserByUname(uname: string): Promise<User> {
+export async function getUserByUname(uname: string): Promise<User | null> {
     const mongoClient = getMongoClient();
 
     try {
         await mongoClient.connect();
         const collection = mongoClient.db('codearena').collection<User>('users');
 
-        // Search user
-        const user = await collection.findOne({ uname: uname });
-
-        if(!user) throw new Error('could not find user');
-        return user;
-
+        return await collection.findOne({ uname: uname });;
     } finally {
         await mongoClient.close();
     }

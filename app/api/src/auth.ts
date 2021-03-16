@@ -11,16 +11,20 @@ export function serializeUser(user: any, done: (err: any, uname?: string) => voi
 }
 
 export function deserializeUser(uname: string, done: (err: any, user?: User) => void) {
-    getUserByUname(uname).then((user: User) => done(null, user)).catch(
-        (reason) => done(reason)
-    );
+    getUserByUname(uname).then((user: User | null) => {
+        if (!objIsUser(user)) return done('uname not valid!');
+
+        return done(null, user);
+    }).catch((reason) => done(reason));
 }
 
 export const localStrategy: BasicStrategy = new BasicStrategy((uname: string, secret: string, done) => {
-    getUserByUname(uname).then((user: User) => {
+    getUserByUname(uname).then((user: User | null) => {
+        if(!objIsUser(user)) return done(null, false);
+
         const hashedSecret = getHashedSecret(secret, user.salt);
-        if(user.secret === hashedSecret) done(null, user);
-        else done(null, false);
+        if(user.secret === hashedSecret) return done(null, user);
+        else return done(null, false);
     }).catch((reason) => done(reason));
 });
 

@@ -40,14 +40,14 @@ const router: Router = Router();
  * 
  * @apiSuccess 204 Successfully registered user
  * 
- * @apiError 400 Bad Request: Missing required params
+ * @apiError 400 Bad Request
  */
 router.post('/register', (req: Request, res: Response, next: NextFunction) => {
     if(typeof req.body.alias !== 'string'
         || typeof req.body.uname !== 'string'
         || typeof req.body.email !== 'string'
         || typeof req.body.secret !== 'string')
-        return res.status(400).end();
+        return res.status(400).end('Missing required params');
     
     // Generate random salt
     const hash = new sha('SHA3-512', 'TEXT');
@@ -65,13 +65,13 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
 
     createUser(user).then(
         () => res.status(204).end(),
-        () => res.status(500).end()
+        () => res.status(400).end('Username or email already exists')
     );
 });
 
 /**
  * @api {post} /api/login Login existing user
- * @apiDescription Endpoint for Basic Auth
+ * @apiDescription Endpoint for Basic Auth Login
  * @apiName LoginUser
  * @apiGroup User
  * 
@@ -87,11 +87,30 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
  * 
  *      HTTP/1.1 401 Unauthorized
  * 
- * @apiSuccess 204 No Content: Successfully logged in
+ * @apiSuccess 204 Successfully logged in
  * 
- * @apiError 401 Unauthorized: username or secret incorrect
+ * @apiError 401 username or secret incorrect
  */
 router.post('/login', passport.authenticate('basic'), (req: Request, res: Response) => {
+    res.status(204).end();
+});
+
+/**
+ * @api {post} /api/logout Logout session
+ * @apiDescription Endpoint for Basic Auth Logout
+ * @apiName LogoutUser
+ * @apiGroup User
+ * 
+ * @apiSuccessExample {json} Authorized-Response
+ *      POST host/api/logout
+ * 
+ *      HTTP/1.1 204 No Content
+ * 
+ * @apiSuccess 204 Successfully logged out
+ */
+ router.post('/logout', (req: Request, res: Response) => {
+    req.logout();
+
     res.status(204).end();
 });
 
