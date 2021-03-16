@@ -1,18 +1,11 @@
 import { Connection, createConnection } from 'typeorm';
-import { InsertOneWriteOpResult, MongoClient, WithId } from 'mongodb';
+import { MongoClient, ObjectID } from 'mongodb';
 import { GameEntry, Game, User } from './models';
 
-interface RelDatabaseConfiguration {
-    type: 'postgres' | 'mysql' | 'mssql';
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    database: string;
-}
+import {Code} from './../../types/code'
 
 const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}/`;
-const relDataConfig: RelDatabaseConfiguration = {
+const relDataConfig = {
     type: process.env.DATABASE_TYPE as any || 'postgres',
     host: process.env.DATABASE_HOST || 'localhost',
     port: +(process.env.DATABASE_PORT || 5432),
@@ -35,27 +28,39 @@ export class DatabaseProvider {
         DatabaseProvider.connection = await createConnection({
             type, host, port, username, password, database,
             entities: [User, Game, GameEntry],
-            synchronize: true
+            synchronize: true//TODO: Warning this HAS to be REMOVED after development. With this flag set any change to the schema will delete all tables!
         });
 
         return DatabaseProvider.connection;
     }
 }
 
-export function getMongoClient(): MongoClient {
-    return new MongoClient(uri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
+export class Mongo {
+    //Mongo client
+    private static mongoClient: MongoClient;
+
+    public static async getClient(): Promise<MongoClient> {
+        if (Mongo.mongoClient) return Mongo.mongoClient;
+        
+        Mongo.mongoClient = new MongoClient(uri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+
+        await Mongo.mongoClient.connect();
+
+        return Mongo.mongoClient;
+    }
 }
 
-//Gets User via Promise if User with uname exist, Promise rejects otherwise.
-export async function getUserByUname(uname: string): Promise<User> {
+
+export async function getUserByUname(uname: string): Promise<User | undefined> {
     const connection = await DatabaseProvider.getConnection();
 
     const returnedUser = await connection.getRepository(User).findOne(uname);
 
-    if(!returnedUser) return Promise.reject(new Error(`No user with username ${uname}.`));
+    //TODO: Should this function reject the promise or return undefined if no user with username uname exists?
+    //if(!returnedUser) return Promise.reject(new Error(`No user with username ${uname}.`));
 
     return returnedUser;
 }
@@ -66,3 +71,23 @@ export async function createUser(user: User): Promise<User> {
     return await connection.getRepository(User).save(user);
 }
 
+
+export async function getGameCode(objectID: ObjectID) {
+    return getCodeFrom(objectID, 'games');
+}
+
+export async function getEntryCode(objectID: ObjectID) {
+    return getCodeFrom(objectID, 'entries');
+}
+
+async function getCodeFrom(objectID: ObjectID, collectionName: string) {
+    const mongoClient = await Mongo.getClient();
+
+    const collection = mongoClient.db('codearena').collection<Code>(collectionName);
+
+    // Search user
+    const code = await collection.findOne({ _id: objectID });
+
+    if (!code) throw new Error(`could not find code in Collection ${collectionName}`);
+    return code;
+}

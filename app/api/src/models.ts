@@ -11,7 +11,7 @@ export class User {
         this.salt = salt;
     }
 
-    @PrimaryColumn("text")
+    @PrimaryColumn()
     public username: string;
 
     @Column()
