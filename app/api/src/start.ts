@@ -1,7 +1,5 @@
 //Needed for typeorm column types
 import 'reflect-metadata';
-//TODO:remove me
-console.log("inport yes");
 
 import { config } from 'dotenv';
 config();
