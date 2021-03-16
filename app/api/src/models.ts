@@ -9,7 +9,6 @@ export class User {
         this.displayname = displayname;
         this.passwordHash = passwordHash;
         this.salt = salt;
-        this.gameEntries = [];
     }
 
     @PrimaryColumn("text")
@@ -28,7 +27,7 @@ export class User {
     public salt: string;
 
     @OneToMany(type => GameEntry, GameEntry => GameEntry.submitter)
-    public gameEntries: GameEntry[];
+    public gameEntries!: GameEntry[];
 }
 
 export function objIsUser(obj: any): obj is User {
@@ -46,7 +45,6 @@ export class Game {
     constructor(name: string, gameCode: string) {
         this.name = name;
         this.gameCode = gameCode;
-        this.entries = [];
     }
 
     @PrimaryColumn()
@@ -56,7 +54,7 @@ export class Game {
     public gameCode: string;
 
     @OneToMany(type => GameEntry, GameEntry => GameEntry.game)
-    public entries: GameEntry[];
+    public entries!: GameEntry[];
 }
 
 @Entity()
@@ -64,8 +62,6 @@ export class GameEntry {
 
     constructor(submittedCode: string, submitter: User, game: Game) {
         this.submittedCode = submittedCode;
-        this.submitter = submitter;
-        this.game = game;
     }
 
     //TODO: This '!' makes the compiler believe id is always initialized, which is not the case. It does not have to be set when handed to typeorm due to being generated, this just stops strict ts from whining.
@@ -76,8 +72,8 @@ export class GameEntry {
     public submittedCode: string;
 
     @ManyToOne(type => User, User => User.passwordHash)
-    public submitter: User;
+    public submitter!: User;
 
     @ManyToOne(type => Game, Game => Game.entries)
-    public game: Game;
+    public game!: Game;
 }

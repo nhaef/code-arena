@@ -49,6 +49,7 @@ export function getMongoClient(): MongoClient {
     });
 }
 
+//Gets User via Promise if User with uname exist, Promise rejects otherwise.
 export async function getUserByUname(uname: string): Promise<User> {
     const connection = await DatabaseProvider.getConnection();
 
