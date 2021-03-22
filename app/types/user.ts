@@ -1,16 +1,16 @@
 export interface User {
-    alias: string;
-    uname: string;
+    displayname: string;
+    username: string;
     email: string;
-    secret: string;
+    passwordHash: string;
     salt: string;
 }
 
 export function objIsUser(obj: any): obj is User {
     return obj 
-        && obj.alias && typeof obj.alias === 'string'
-        && obj.uname && typeof obj.uname === 'string'
+        && obj.displayname && typeof obj.displayname === 'string'
+        && obj.username && typeof obj.username === 'string'
         && obj.email && typeof obj.email === 'string'
-        && obj.secret && typeof obj.secret === 'string'
+        && obj.passwordHash && typeof obj.passwordHash === 'string'
         && obj.salt && typeof obj.salt === 'string'
 }

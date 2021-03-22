@@ -1,8 +1,12 @@
-import { Connection, createConnection } from 'typeorm';
+import { Connection, createConnection, EntityTarget, MongoError, Repository } from 'typeorm';
 import { MongoClient, ObjectID } from 'mongodb';
-import { GameEntry, Game, User } from './models';
+import { GameEntry, Game, User, Code } from './models';
 
-import {Code} from './../../types/code'
+function assert(condition: any, msg?: string): asserts condition {
+    if (!condition) {
+        throw new Error("Assertion error: " + msg);
+    }
+}
 
 const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}/`;
 const relDataConfig = {
@@ -16,7 +20,7 @@ const relDataConfig = {
 
 
 //TODO: remove unnecessary typing. All config will be done in here for now so interface exports not needed.
-export class DatabaseProvider {
+class DatabaseProvider {
     private static connection: Connection;
 
     public static async getConnection(): Promise<Connection> {
@@ -28,19 +32,26 @@ export class DatabaseProvider {
         DatabaseProvider.connection = await createConnection({
             type, host, port, username, password, database,
             entities: [User, Game, GameEntry],
-            synchronize: true//TODO: Warning this HAS to be REMOVED after development. With this flag set any change to the schema will delete all tables!
+            synchronize: true//TODO: Warning this HAS to be REMOVED after development. With this flag set any change to the schema will delete all db tables!
         });
 
         return DatabaseProvider.connection;
     }
 }
 
-export class Mongo {
+class Mongo {
     //Mongo client
     private static mongoClient: MongoClient;
 
+    public static async getCollection<T>(name: string) {
+        return await (await Mongo.getClient()).db("code-arena").collection<T>(name);
+    }
+
     public static async getClient(): Promise<MongoClient> {
-        if (Mongo.mongoClient) return Mongo.mongoClient;
+
+        //TODO: Can we cache the client like this? It seems to crash sometimes D:
+        //Needs more testing and knowledge about async for this
+        //if (Mongo.mongoClient) return Mongo.mongoClient;
         
         Mongo.mongoClient = new MongoClient(uri, {
             useNewUrlParser: true,
@@ -72,20 +83,93 @@ export async function createUser(user: User): Promise<User> {
 }
 
 
-export async function getGameCode(objectID: ObjectID) {
-    return getCodeFrom(objectID, 'games');
+async function getGameCode(objectID: string): Promise<Code> {
+    return getCodeFrom(new ObjectID(objectID), 'games');
 }
 
-export async function getEntryCode(objectID: ObjectID) {
-    return getCodeFrom(objectID, 'entries');
+async function setGameCode(code: Code): Promise<string> {
+    return (await setCodeIn(code, 'games')).toHexString();
 }
 
-async function getCodeFrom(objectID: ObjectID, collectionName: string) {
-    const mongoClient = await Mongo.getClient();
+async function getEntryCode(objectID: string): Promise<Code> {
+    return getCodeFrom(new ObjectID(objectID), 'entries');
+}
 
-    const collection = mongoClient.db('codearena').collection<Code>(collectionName);
+async function setEntryCode(code: Code): Promise<string> {
+    return (await setCodeIn(code, 'entries')).toHexString();
+}
 
-    // Search user
+//TODO: should this function get a Game object or contruct it here?
+export async function createGame(game: Game, code: Code): Promise<Game | null> {
+    const connection = await DatabaseProvider.getConnection();
+
+    //Check that the name for the game is not yet in use.
+    const checkGame = await connection.getRepository(Game).findOne({name: game.name});
+    if(checkGame)throw new Error("Game name already in use.");
+
+
+    const _id = await setGameCode(code).catch((reason) => {
+        //TODO: Implement error logging
+        return null;
+    });
+
+    if(!_id) {
+        //TODO: Error loggin and catching i dunno.
+        throw new Error("Saving Code in Mongo has failed. in createGame");
+    }
+
+    game.gameCodeID = _id
+
+    
+    const savedGame = await connection.getRepository(Game).save(game).catch((reason) => {
+        //TODO: Implement rollback functionality that will remove the headless Mongo database entry when the mongo db write fails.
+
+        return null;
+    });
+
+    return savedGame;
+}
+
+//TODO: should this reject the promise when the game is not found, or should it return undefined?
+export async function getGame(name:string): Promise<Game | undefined> {
+    const connection = await DatabaseProvider.getConnection();
+
+    const foundGame = await connection.getRepository(Game).findOne(name);
+
+    return foundGame;
+}
+
+async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> {
+    const collection = await Mongo.getCollection<Code>(collectionName);
+
+    const dbCode: Code = <Code>code;
+
+    //Create the ObjectID under which this code will be saved in MongoDB.
+    const id: ObjectID = new ObjectID();
+    dbCode._id = id;
+
+    collection.insertOne(dbCode, async(err, res) => {
+
+        if(err)throw err;
+
+        assert(id === res.insertedId, "Mongo assigned different ObjectID then provided in setCodeIn");
+
+        const insertedCode: Code = await getCodeFrom(res.insertedId, collectionName).catch((reason) => {
+            //TODO: Proper logging so I can figure out why, when this goes wrong.
+            throw reason;
+        });
+
+
+        //assert that the code to be saved was actually saved correctly
+        assert(code === insertedCode, `Handed in code ${code} and saved code ${insertedCode} differ. This implies the db is not working as intended.`);
+    });
+
+    return id;
+}
+
+async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code> {
+    const collection = await Mongo.getCollection<Code>(collectionName);
+
     const code = await collection.findOne({ _id: objectID });
 
     if (!code) throw new Error(`could not find code in Collection ${collectionName}`);

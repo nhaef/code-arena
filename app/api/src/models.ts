@@ -1,4 +1,7 @@
-import { Entity, PrimaryColumn, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { ObjectID } from 'bson';
+import { Entity, PrimaryColumn, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { User as TypeUser } from './../../types/user';
+import { Code as TypeCode } from './../../types/code';
 
 @Entity()
 export class User {
@@ -30,6 +33,7 @@ export class User {
     public gameEntries!: GameEntry[];
 }
 
+
 export function objIsUser(obj: any): obj is User {
     return obj
         && obj.displayname && typeof obj.displayname === 'string'
@@ -42,16 +46,19 @@ export function objIsUser(obj: any): obj is User {
 @Entity()
 export class Game {
     
-    constructor(name: string, gameCode: string) {
+    constructor(name: string, description: string) {
         this.name = name;
-        this.gameCode = gameCode;
+        this.description = description;
     }
 
     @PrimaryColumn()
     public name: string;
 
     @Column()
-    public gameCode: string;
+    public description: string;
+
+    @Column()
+    public gameCodeID!: string;
 
     @OneToMany(type => GameEntry, GameEntry => GameEntry.game)
     public entries!: GameEntry[];
@@ -76,4 +83,16 @@ export class GameEntry {
 
     @ManyToOne(type => Game, Game => Game.entries)
     public game!: Game;
+}
+
+//Stored in MongoDB
+export class Code {
+
+    constructor(code: string) {
+        this.code = code;
+    }
+
+    public code: string
+
+    public _id!: ObjectID;
 }
