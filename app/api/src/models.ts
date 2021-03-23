@@ -51,6 +51,16 @@ export class Game {
         this.description = description;
     }
 
+    public equals(game: Game | undefined | null | void): boolean {
+
+        if(!game)return false;
+
+        return this.name === game.name &&
+            this.description === game.description &&
+            this.gameCodeID === game.gameCodeID &&
+            this.entries === game.entries;
+    }
+
     @PrimaryColumn()
     public name: string;
 
@@ -90,6 +100,11 @@ export class Code {
 
     constructor(code: string) {
         this.code = code;
+    }
+
+    public equals(code: Code): boolean {
+        return this.code === code.code &&
+                this._id.equals(code._id);
     }
 
     public code: string

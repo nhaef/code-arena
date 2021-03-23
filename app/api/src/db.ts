@@ -1,4 +1,4 @@
-import { Connection, createConnection, EntityTarget, MongoError, Repository } from 'typeorm';
+import { Connection, createConnection, DeleteResult, EntityTarget, MongoError, Repository } from 'typeorm';
 import { MongoClient, ObjectID } from 'mongodb';
 import { GameEntry, Game, User, Code } from './models';
 
@@ -19,7 +19,6 @@ const relDataConfig = {
 };
 
 
-//TODO: remove unnecessary typing. All config will be done in here for now so interface exports not needed.
 class DatabaseProvider {
     private static connection: Connection;
 
@@ -76,12 +75,28 @@ export async function getUserByUname(uname: string): Promise<User | undefined> {
     return returnedUser;
 }
 
-export async function createUser(user: User): Promise<User> {
+export async function createUser(user: User): Promise<User | null> {
+
+    if(await getUserByUname(user.username))return null;
+
     const connection = await DatabaseProvider.getConnection();
 
-    return await connection.getRepository(User).save(user);
+    const createdUser = await connection.getRepository(User).save(user);
+
+    return createdUser;
 }
 
+export async function deleteUserByUname(username: string): Promise<boolean> {
+
+    if (!await getUserByUname(username)) return false;
+
+    const connection = await DatabaseProvider.getConnection();
+
+    await connection.getRepository(User).delete({username: username});
+
+    assert(await getUserByUname(username) === undefined, "deleteUserByUsername failed to delete.");
+    return true;
+}
 
 async function getGameCode(objectID: string): Promise<Code> {
     return getCodeFrom(new ObjectID(objectID), 'games');
@@ -104,12 +119,15 @@ export async function createGame(game: Game, code: Code): Promise<Game | null> {
     const connection = await DatabaseProvider.getConnection();
 
     //Check that the name for the game is not yet in use.
-    const checkGame = await connection.getRepository(Game).findOne({name: game.name});
-    if(checkGame)throw new Error("Game name already in use.");
+    const checkGame = await connection.getRepository(Game).findOne({name: game.name}).catch((reason) => {
+        console.log(reason);
+    });
+    if(checkGame)return null;
 
 
     const _id = await setGameCode(code).catch((reason) => {
         //TODO: Implement error logging
+        console.log(reason);
         return null;
     });
 
@@ -123,8 +141,7 @@ export async function createGame(game: Game, code: Code): Promise<Game | null> {
     
     const savedGame = await connection.getRepository(Game).save(game).catch((reason) => {
         //TODO: Implement rollback functionality that will remove the headless Mongo database entry when the mongo db write fails.
-
-        return null;
+        throw new Error(reason);
     });
 
     return savedGame;
@@ -139,16 +156,24 @@ export async function getGame(name:string): Promise<Game | undefined> {
     return foundGame;
 }
 
+export async function deleteGame(name:string): Promise<Game | undefined> {
+    const connection = await DatabaseProvider.getConnection();
+
+    const foundGame = await connection.getRepository(Game).findOne(name);
+
+    if(foundGame)await connection.getRepository(Game).delete({name: name});
+
+    return foundGame;
+}
+
 async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> {
     const collection = await Mongo.getCollection<Code>(collectionName);
 
-    const dbCode: Code = <Code>code;
-
     //Create the ObjectID under which this code will be saved in MongoDB.
     const id: ObjectID = new ObjectID();
-    dbCode._id = id;
+    code._id = id;
 
-    collection.insertOne(dbCode, async(err, res) => {
+    collection.insertOne(code, async(err, res) => {
 
         if(err)throw err;
 
@@ -159,9 +184,8 @@ async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> 
             throw reason;
         });
 
-
         //assert that the code to be saved was actually saved correctly
-        assert(code === insertedCode, `Handed in code ${code} and saved code ${insertedCode} differ. This implies the db is not working as intended.`);
+        assert(code.equals(insertedCode), `Handed in code ${code} and saved code ${insertedCode} differ. This implies the db is not working as intended.`);
     });
 
     return id;

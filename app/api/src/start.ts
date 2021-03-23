@@ -29,3 +29,9 @@ app.listen(port);
 
 // API up and running
 console.log(`Currently listening on Port ${port}`);
+
+import {test as dbTest} from './dbtest'
+
+dbTest().catch((reason) => {
+    console.log(reason);
+})

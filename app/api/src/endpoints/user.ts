@@ -5,7 +5,7 @@ import { createUser } from '../db';
 import { User as TypeUser } from './../../../types/user';
 import { getHashedSecret } from '../auth';
 import sha from 'jssha';
-import { User} from 'src/models';
+import { User} from '../models';
 
 const router: Router = Router();
 
