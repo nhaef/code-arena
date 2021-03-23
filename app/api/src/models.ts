@@ -107,9 +107,14 @@ export class GameEntry {
 
 //Stored in MongoDB
 export class Code {
-
-    constructor(code: string) {
-        this.code = code;
+    constructor(code: string);
+    constructor(code: Code);
+    constructor(code: string | Code) {
+        if(typeof code === "string")this.code = code;
+        else {
+            this.code = code.code;
+            this._id = code._id;
+        }
     }
 
     public equals(code: Code): boolean {

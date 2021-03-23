@@ -100,7 +100,7 @@ export async function deleteUserByUname(username: string): Promise<User | null> 
     return user;
 }
 
-async function getGameCode(objectID: string): Promise<Code> {
+export async function getGameCode(objectID: string): Promise<Code | null> {
     return getCodeFrom(new ObjectID(objectID), 'games');
 }
 
@@ -108,7 +108,7 @@ async function setGameCode(code: Code): Promise<string> {
     return (await setCodeIn(code, 'games')).toHexString();
 }
 
-async function getEntryCode(objectID: string): Promise<Code> {
+export async function getEntryCode(objectID: string): Promise<Code | null> {
     return getCodeFrom(new ObjectID(objectID), 'entries');
 }
 
@@ -181,23 +181,26 @@ async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> 
 
         assert(id === res.insertedId, "Mongo assigned different ObjectID then provided in setCodeIn");
 
-        const insertedCode: Code = await getCodeFrom(res.insertedId, collectionName).catch((reason) => {
+        const insertedCode = await getCodeFrom(res.insertedId, collectionName).catch((reason) => {
             //TODO: Proper logging so I can figure out why, when this goes wrong.
             throw reason;
         });
 
         //assert that the code to be saved was actually saved correctly
+        assert(insertedCode);
         assert(code.equals(insertedCode), `Handed in code ${code} and saved code ${insertedCode} differ. This implies the db is not working as intended.`);
     });
 
     return id;
 }
 
-async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code> {
+async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code | null> {
     const collection = await Mongo.getCollection<Code>(collectionName);
 
     const code = await collection.findOne({ _id: objectID });
 
-    if (!code) throw new Error(`could not find code in Collection ${collectionName}`);
-    return code;
+    if (!code) return null;
+
+    //This is a disgusting fix to ensure that the code object which is returned will have the .equals function
+    return new Code(code);
 }
