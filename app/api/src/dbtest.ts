@@ -1,5 +1,5 @@
-import { createGame, deleteGame, getGame } from "./db";
-import { Code, Game } from "./models";
+import { createGame, createUser, deleteGame, deleteUserByUname, getGame, getUserByUname } from "./db";
+import { Code, Game, User } from "./models";
 
 function assert(condition: any, msg?: string): asserts condition {
     if (!condition) {
@@ -8,6 +8,31 @@ function assert(condition: any, msg?: string): asserts condition {
 }
 
 export async function test() {
+
+    //TEST USER
+    const user = new User("BSC", "testmail@mail.com", "BloodStainedCrow", "wagdgwudg", "asfdazwgzw");
+
+    const createdUser = await createUser(user);
+
+    assert(createdUser, "User was not created.");
+    assert(createdUser.equals(user), "Inserted user unequal user.");
+
+    const secondUserTemplate = new User("BSC", "differentTestmail@mail.com", "BldStndCrw", "ifuha", "ajsdkb");
+
+    const secondUser = await createUser(secondUserTemplate);
+
+    assert(secondUser === null, "second user was inserted even though their username was already in use");
+
+    const deletedUser = await deleteUserByUname(user.username);
+
+    assert(deletedUser, "User wich was deleted was not as expected, but falsy");
+    assert(deletedUser.equals(user), "User wich was deleted was not as expected, but unequal to user");
+
+    assert(await getUserByUname("BSC").catch((reason) => {
+        console.log(reason);
+    }) === undefined, "after user deletion user was still in the db");
+
+    //TEST GAME
 
     const game = new Game("TicTacToe", "A turn based game with the goal of creating a row of 3 identical symbols.")
     const code = new Code("console.log('test123');")

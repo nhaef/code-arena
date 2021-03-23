@@ -14,6 +14,16 @@ export class User {
         this.salt = salt;
     }
 
+    public equals(user: User | undefined | null) {
+        if(!user)return false;
+
+        return this.username === user.username &&
+                this.email === user.email &&
+                this.displayname === user.displayname &&
+                this.passwordHash === user.passwordHash &&
+                this.salt === user.salt;
+    }
+
     @PrimaryColumn()
     public username: string;
 

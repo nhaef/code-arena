@@ -86,16 +86,18 @@ export async function createUser(user: User): Promise<User | null> {
     return createdUser;
 }
 
-export async function deleteUserByUname(username: string): Promise<boolean> {
+export async function deleteUserByUname(username: string): Promise<User | null> {
 
-    if (!await getUserByUname(username)) return false;
+    const user = await getUserByUname(username);
+
+    if (!user) return null;
 
     const connection = await DatabaseProvider.getConnection();
 
     await connection.getRepository(User).delete({username: username});
 
     assert(await getUserByUname(username) === undefined, "deleteUserByUsername failed to delete.");
-    return true;
+    return user;
 }
 
 async function getGameCode(objectID: string): Promise<Code> {
