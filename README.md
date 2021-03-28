@@ -17,6 +17,7 @@ Code Arena is a project which will allow users to let their AI-Models compete in
 Contents of app\api\.env
 
 PORT=3000
+SESSION_SECRET={{ Insert Session-Secret here }}
 MONGO_USER={{ Insert MongoDB-User here }}
 MONGO_PASS={{ Insert MongoDB-Pass here }}
 MONGO_HOST={{ Insert MongoDB-Host here }}

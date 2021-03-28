@@ -90,4 +90,23 @@ router.post('/login', passport.authenticate('basic'), (req: Request, res: Respon
     res.status(204).end();
 });
 
+/**
+ * @api {post} /api/logout Logout session
+ * @apiDescription Endpoint for Basic Auth Logout
+ * @apiName LogoutUser
+ * @apiGroup User
+ * 
+ * @apiSuccessExample {json} Authorized-Response
+ *      POST host/api/logout
+ * 
+ *      HTTP/1.1 204 No Content
+ * 
+ * @apiSuccess 204 Successfully logged out
+ */
+ router.post('/logout', (req: Request, res: Response) => {
+    req.logout();
+
+    res.status(204).end();
+});
+
 export { router as userRouter };
