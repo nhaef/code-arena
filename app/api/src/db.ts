@@ -2,7 +2,13 @@ import { Connection, createConnection, DeleteResult, EntityTarget, MongoError, R
 import { MongoClient, ObjectID } from 'mongodb';
 import { GameEntry, Game, User, Code } from './models';
 
-function assert(condition: any, msg?: string): asserts condition {
+//TODO: Implement checking functionality for these types.
+//TODO: Implement subrelations i.e. entries.game etc.
+type gameRelations = "entries";
+type userRelations = "gameEntries";
+type gameEntryRelations = "game" | "submitter";
+
+export function assert(condition: any, msg?: string): asserts condition {
     if (!condition) {
         throw new Error("Assertion error: " + msg);
     }
@@ -18,8 +24,7 @@ const relDataConfig = {
     database: process.env.DATABASE_NAME || 'codearena'
 };
 
-
-class DatabaseProvider {
+export class DatabaseProvider {
     private static connection: Connection;
 
     public static async getConnection(): Promise<Connection> {
@@ -31,14 +36,16 @@ class DatabaseProvider {
         DatabaseProvider.connection = await createConnection({
             type, host, port, username, password, database,
             entities: [User, Game, GameEntry],
-            synchronize: true//TODO: Warning this HAS to be REMOVED after development. With this flag set any change to the schema will delete all db tables!
+            synchronize: true//FIXME: Warning this HAS to be REMOVED after development. With this flag set any change to the schema will delete all db tables!
+        }).catch((reason) => {
+            throw reason;
         });
 
         return DatabaseProvider.connection;
     }
 }
 
-class Mongo {
+export class Mongo {
     //Mongo client
     private static mongoClient: MongoClient;
 
@@ -48,49 +55,57 @@ class Mongo {
 
     public static async getClient(): Promise<MongoClient> {
 
-        //TODO: Can we cache the client like this? It seems to crash sometimes D:
-        //Needs more testing and knowledge about async for this
-        //if (Mongo.mongoClient) return Mongo.mongoClient;
+        //FIXME: Can we cache the client like this? It seems to crash very rarely D:
+        //Needs more testing and knowledge about async and Mongo for this
+        if (Mongo.mongoClient) return Mongo.mongoClient;
         
         Mongo.mongoClient = new MongoClient(uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
 
-        await Mongo.mongoClient.connect();
+        Mongo.mongoClient = await Mongo.mongoClient.connect().catch((reason) => {
+            throw reason;
+        });
 
         return Mongo.mongoClient;
     }
 }
 
 
-export async function getUserByUname(uname: string): Promise<User | undefined> {
+export async function getUserByUname(uname: string, relations?: userRelations[]): Promise<User | undefined> {
+
     const connection = await DatabaseProvider.getConnection();
 
-    const returnedUser = await connection.getRepository(User).findOne(uname);
-
-    //TODO: Should this function reject the promise or return undefined if no user with username uname exists?
-    //if(!returnedUser) return Promise.reject(new Error(`No user with username ${uname}.`));
+    const returnedUser = await connection.getRepository(User).findOne({where: {username: uname}, relations: relations});
 
     return returnedUser;
 }
 
-export async function createUser(user: User): Promise<User | null> {
+export async function createUser(user: User): Promise<User> {
 
-    if(await getUserByUname(user.username))return null;
+    if (await getUserByUname(user.username).catch(reason => {
+        throw reason;
+    })) {
+        return Promise.reject(new Error("Username already taken."));
+    }
 
-    const connection = await DatabaseProvider.getConnection();
+    const connection = await DatabaseProvider.getConnection().catch(reason => {
+        throw reason;
+    });
 
-    const createdUser = await connection.getRepository(User).save(user);
+    const createdUser = await connection.getRepository(User).save(user).catch(reason => {
+        throw reason;
+    });
 
     return createdUser;
 }
 
-export async function deleteUserByUname(username: string): Promise<User | null> {
+export async function deleteUserByUname(username: string): Promise<User | undefined> {
 
     const user = await getUserByUname(username);
 
-    if (!user) return null;
+    if (!user) return undefined;
 
     const connection = await DatabaseProvider.getConnection();
 
@@ -100,7 +115,7 @@ export async function deleteUserByUname(username: string): Promise<User | null> 
     return user;
 }
 
-export async function getGameCode(objectID: string): Promise<Code | null> {
+export async function getGameCode(objectID: string): Promise<Code | undefined> {
     return getCodeFrom(new ObjectID(objectID), 'games');
 }
 
@@ -108,7 +123,7 @@ async function setGameCode(code: Code): Promise<string> {
     return (await setCodeIn(code, 'games')).toHexString();
 }
 
-export async function getEntryCode(objectID: string): Promise<Code | null> {
+export async function getEntryCode(objectID: string): Promise<Code | undefined> {
     return getCodeFrom(new ObjectID(objectID), 'entries');
 }
 
@@ -116,44 +131,51 @@ async function setEntryCode(code: Code): Promise<string> {
     return (await setCodeIn(code, 'entries')).toHexString();
 }
 
-//TODO: should this function get a Game object or contruct it here?
-export async function createGame(game: Game, code: Code): Promise<Game | null> {
+export async function createGame(game: Game, code: Code): Promise<Game> {
     const connection = await DatabaseProvider.getConnection();
 
     //Check that the name for the game is not yet in use.
     const checkGame = await connection.getRepository(Game).findOne({name: game.name}).catch((reason) => {
         console.log(reason);
     });
-    if(checkGame)return null;
+    if(checkGame)return Promise.reject(new Error("Game name already in use."));
 
 
     const _id = await setGameCode(code).catch((reason) => {
-        //TODO: Implement error logging
         console.log(reason);
         return null;
     });
 
     if(!_id) {
-        //TODO: Error loggin and catching i dunno.
         throw new Error("Saving Code in Mongo has failed. in createGame");
     }
 
     game.gameCodeID = _id
 
     
-    const savedGame = await connection.getRepository(Game).save(game).catch((reason) => {
-        //TODO: Implement rollback functionality that will remove the headless Mongo database entry when the mongo db write fails.
+    const savedGame = await connection.getRepository(Game).save(game).catch(async (reason) => {
+        await deleteCodeFrom(new ObjectID(_id), "games").catch(reason => {
+            //ERROR SOMETHING HAS GONE TERRIBLY WRONG and both databases are not working as expected.
+            //FIXME: This leaves an headless entry in Mongo! Log this somewhere where an admin can fix this by hand. THIS SHOULD NOT HAPPEN!
+            throw reason;
+        });
+
         throw new Error(reason);
     });
+
+    const foundGame = await getGame(game.name).catch(reason => {
+        throw reason;
+    });
+
+    assert(foundGame, "Game was not saved.");
 
     return savedGame;
 }
 
-//TODO: should this reject the promise when the game is not found, or should it return undefined?
-export async function getGame(name:string): Promise<Game | undefined> {
+export async function getGame(name:string, relations?: gameRelations[]): Promise<Game | undefined> {
     const connection = await DatabaseProvider.getConnection();
 
-    const foundGame = await connection.getRepository(Game).findOne(name);
+    const foundGame = await connection.getRepository(Game).findOne({where: {name: name}, relations: relations});
 
     return foundGame;
 }
@@ -164,6 +186,72 @@ export async function deleteGame(name:string): Promise<Game | undefined> {
     const foundGame = await connection.getRepository(Game).findOne(name);
 
     if(foundGame)await connection.getRepository(Game).delete({name: name});
+
+    return foundGame;
+}
+
+export async function createEntry(entry: GameEntry, code: Code): Promise<GameEntry> {
+    const connection = await DatabaseProvider.getConnection();
+
+    if(!await getGame(entry.game.name))return Promise.reject(new Error("Game: " + entry.game.name + " does not exist."));
+    if(!await getUserByUname(entry.submitter.username))return Promise.reject(new Error("User: " + entry.submitter.username + " does not exist."));
+
+    const _id = await setEntryCode(code).catch((reason) => {
+        console.log(reason);
+        return null;
+    });
+
+    if (!_id) {
+        throw new Error("Saving Code in Mongo has failed. in createEntry");
+    }
+
+    entry.submittedCodeID = _id;
+
+
+    const savedEntry = await connection.getRepository(GameEntry).save(entry).catch(async (reason) => {
+        await deleteCodeFrom(new ObjectID(_id), "entries").catch(reason => {
+            //ERROR SOMETHING HAS GONE TERRIBLY WRONG and both databases are not working as expected.
+            //FIXME: This leaves an headless entry in Mongo! Log this somewhere where an admin can fix this by hand. THIS SHOULD NOT HAPPEN!
+            throw reason;
+        });
+
+        throw new Error(reason);
+    });
+
+    
+    const foundEntry = await getEntry(savedEntry.id, ["game", "submitter"]).catch(reason => {
+        throw reason;
+    });
+
+
+    assert(foundEntry, "Entry was not saved.");
+    assert(foundEntry.game.equals(entry.game) && foundEntry.submitter.equals(entry.submitter) && foundEntry.submittedCodeID === entry.submittedCodeID, "foundEntry and entry are not equivalent.");
+
+    const game = await getGame(foundEntry.game.name, ["entries"]).catch(reason => {
+        throw reason;
+    });
+
+    assert(game, "Game does not exist, even though it did earlier");
+    assert(game.entries, "Game does not have entries");
+    assert(game.entries.some(e => e.equals(entry)), "entry not in game.entries.");
+
+    return savedEntry;
+}
+
+export async function getEntry(id:number, relations? : gameEntryRelations[]): Promise<GameEntry | undefined> {
+    const connection = await DatabaseProvider.getConnection();
+
+    const foundEntry = await connection.getRepository(GameEntry).findOne({ where: { id: id }, relations: relations });
+
+    return foundEntry;
+}
+
+export async function deleteEntry(id:number): Promise<GameEntry | undefined> {
+    const connection = await DatabaseProvider.getConnection();
+
+    const foundGame = await connection.getRepository(GameEntry).findOne(id);
+
+    if (foundGame) await connection.getRepository(GameEntry).delete({ id: id });
 
     return foundGame;
 }
@@ -182,7 +270,6 @@ async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> 
         assert(id === res.insertedId, "Mongo assigned different ObjectID then provided in setCodeIn");
 
         const insertedCode = await getCodeFrom(res.insertedId, collectionName).catch((reason) => {
-            //TODO: Proper logging so I can figure out why, when this goes wrong.
             throw reason;
         });
 
@@ -194,13 +281,28 @@ async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> 
     return id;
 }
 
-async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code | null> {
+async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code | undefined> {
     const collection = await Mongo.getCollection<Code>(collectionName);
 
     const code = await collection.findOne({ _id: objectID });
 
-    if (!code) return null;
+    if (!code) return undefined;
 
-    //This is a disgusting fix to ensure that the code object which is returned will have the .equals function
+    //HACK: This is a disgusting fix to ensure that the code object which is returned will have the .equals function since Mongo does not do this...
+    return new Code(code);
+}
+
+async function deleteCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code | undefined> {
+    const collection = await Mongo.getCollection<Code>(collectionName);
+
+    const code = await collection.findOne({ _id: objectID });
+
+    if (!code) return undefined;
+
+    await collection.deleteOne({ _id: objectID });
+
+    assert(await getCodeFrom(objectID, collectionName) === undefined, "Code was still in Mongo after delete.")
+
+    //HACK: This is a disgusting fix to ensure that the code object which is returned will have the .equals function since Mongo does not do this...
     return new Code(code);
 }

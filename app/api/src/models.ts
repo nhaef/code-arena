@@ -1,7 +1,5 @@
 import { ObjectID } from 'bson';
 import { Entity, PrimaryColumn, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, OneToOne } from 'typeorm';
-import { User as TypeUser } from './../../types/user';
-import { Code as TypeCode } from './../../types/code';
 
 @Entity()
 export class User {
@@ -66,9 +64,7 @@ export class Game {
         if(!game)return false;
 
         return this.name === game.name &&
-            this.description === game.description &&
-            this.gameCodeID === game.gameCodeID &&
-            this.entries === game.entries;
+            this.description === game.description;
     }
 
     @PrimaryColumn()
@@ -87,22 +83,30 @@ export class Game {
 @Entity()
 export class GameEntry {
 
-    constructor(submittedCode: string, submitter: User, game: Game) {
-        this.submittedCode = submittedCode;
+    constructor(submitter: User, game: Game) {
+        this.submitter = submitter;
+        this.game = game;
     }
 
-    //TODO: This '!' makes the compiler believe id is always initialized, which is not the case. It does not have to be set when handed to typeorm due to being generated, this just stops strict ts from whining.
+    //TODO: This '!' makes the compiler believe id is always initialized, which is not the case. It may not be set when handed to typeorm due to being generated, this just stops strict ts from crying.
     @PrimaryGeneratedColumn()
     public id!: number;
 
     @Column()
-    public submittedCode: string;
+    public submittedCodeID!: string;
 
-    @ManyToOne(type => User, User => User.passwordHash)
+    @ManyToOne(type => User, User => User.gameEntries, { onDelete: "SET NULL" })
     public submitter!: User;
 
-    @ManyToOne(type => Game, Game => Game.entries)
+    @ManyToOne(type => Game, Game => Game.entries, { onDelete: "CASCADE" })
     public game!: Game;
+
+    public equals(other: GameEntry | null | undefined | void): boolean {
+        if(!other)return false;
+
+        return this.id === other.id &&
+                this.submittedCodeID === other.submittedCodeID;
+    }
 }
 
 //Stored in MongoDB
