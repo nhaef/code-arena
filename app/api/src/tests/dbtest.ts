@@ -1,5 +1,5 @@
 import { ObjectID } from 'bson';
-import { createGame, createUser, deleteGame, deleteUserByUname, getGame, getUserByUsername, getGameCode, createEntry, getEntry, deleteEntry } from './../db';
+import { createGame, createUser, deleteGame, deleteUserByUsername, getGame, getUserByUsername, getGameCode, createEntry, getEntry, deleteEntry } from './../db';
 import { Code, Game, GameEntry, User } from './../models';
 
 function assert(condition: any, msg?: string): asserts condition {
@@ -10,7 +10,7 @@ function assert(condition: any, msg?: string): asserts condition {
 
 export async function test() {
 
-    await deleteUserByUname('BSC').catch((reason) => {
+    await deleteUserByUsername('BSC').catch((reason) => {
         throw reason;
     });
 
@@ -38,7 +38,7 @@ export async function test() {
 
     assert(secondUser === undefined, 'second user was inserted even though their username was already in use');
 
-    const deletedUser = await deleteUserByUname(user.username).catch((reason) => {
+    const deletedUser = await deleteUserByUsername(user.username).catch((reason) => {
         console.log(reason);
     });
 

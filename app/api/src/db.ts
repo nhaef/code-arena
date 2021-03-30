@@ -67,11 +67,11 @@ export async function getClient(): Promise<MongoClient> {
 }
 
 
-export async function getUserByUsername(uname: string, relations?: userRelations[]): Promise<User | undefined> {
+export async function getUserByUsername(Username: string, relations?: userRelations[]): Promise<User | undefined> {
 
     const connection = await getConnection();
 
-    const returnedUser = await connection.getRepository(User).findOne({ where: { username: uname }, relations: relations });
+    const returnedUser = await connection.getRepository(User).findOne({ where: { username: Username }, relations: relations });
 
     return returnedUser;
 }
@@ -95,7 +95,7 @@ export async function createUser(user: User): Promise<User> {
     return createdUser;
 }
 
-export async function deleteUserByUname(username: string): Promise<User | undefined> {
+export async function deleteUserByUsername(username: string): Promise<User | undefined> {
 
     const user = await getUserByUsername(username);
 

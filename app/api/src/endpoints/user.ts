@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Router } from "express";
 import passport from 'passport';
 import { createUser } from '../db';
-import { getHashedSecret } from '../auth';
+import { getHashedPassword } from '../auth';
 import sha from 'jssha';
 import { User} from '../models';
 
@@ -55,7 +55,7 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
     const salt = hash.getHash('HEX');
 
     // Create new user
-    const user = new User(req.body.username, req.body.email, req.body.displayname, getHashedSecret(req.body.password, salt), salt);
+    const user = new User(req.body.username, req.body.email, req.body.displayname, getHashedPassword(req.body.password, salt), salt);
 
     createUser(user).then(
         () => res.status(204).end(),
