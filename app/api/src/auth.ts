@@ -1,11 +1,11 @@
 import { BasicStrategy } from 'passport-http';
 import sha from 'jssha';
 
-import { User, objIsUser } from './models';
+import { User } from './models';
 import { getUserByUname } from './db';
 
 export function serializeUser(user: any, done: (err: any, uname?: string) => void) {
-    if (!objIsUser(user)) return done('user object not valid!');
+    if (!(user instanceof User)) return done('user object not valid!');
 
     done(null, user.username);
 }
