@@ -1,5 +1,5 @@
 import { ObjectID } from 'bson';
-import { createGame, createUser, deleteGame, deleteUserByUname, getGame, getUserByUname, getGameCode, createEntry, getEntry, deleteEntry } from './../db';
+import { createGame, createUser, deleteGame, deleteUserByUname, getGame, getUserByUsername, getGameCode, createEntry, getEntry, deleteEntry } from './../db';
 import { Code, Game, GameEntry, User } from './../models';
 
 function assert(condition: any, msg?: string): asserts condition {
@@ -14,7 +14,7 @@ export async function test() {
         throw reason;
     });
 
-    assert(await getUserByUname('BSC').catch((reason) => {
+    assert(await getUserByUsername('BSC').catch((reason) => {
         throw reason;
     }) === undefined, 'BSC was still in db after delete')
 
@@ -45,7 +45,7 @@ export async function test() {
     assert(deletedUser, 'User wich was deleted was not as expected, but falsy');
     assert(deletedUser.equals(user), 'User wich was deleted was not as expected, but unequal to user');
 
-    assert(await getUserByUname('BSC').catch((reason) => {
+    assert(await getUserByUsername('BSC').catch((reason) => {
         console.log(reason);
     }) === undefined, 'after user deletion user was still in the db');
 
@@ -119,14 +119,14 @@ async function testGameEntry() {
     assert(createdGame, 'Game not created');
 
     const createdUser = await createUser(user).catch(async (reason) => {
-        return await getUserByUname(user.username).catch((reason) => {
+        return await getUserByUsername(user.username).catch((reason) => {
             console.log(reason);
             throw reason;
         });
     });
     assert(createdUser, 'User not created.');
 
-    const foundUser = await getUserByUname('EntryTestUser').catch((reason) => {
+    const foundUser = await getUserByUsername('EntryTestUser').catch((reason) => {
         console.log(reason);
         throw reason;
     });
@@ -164,7 +164,7 @@ async function testGameEntry() {
     //assert that the entry is inside logGame.entries
     assert(logGame.entries.some(e => e.equals(entry)), 'entry is not in logGame.entries');
 
-    const logUser = await getUserByUname('EntryTestUser', ['gameEntries']).catch(reason => {
+    const logUser = await getUserByUsername('EntryTestUser', ['gameEntries']).catch(reason => {
         console.log(reason);
         throw reason;
     });

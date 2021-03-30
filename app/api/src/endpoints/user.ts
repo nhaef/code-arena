@@ -13,18 +13,18 @@ const router: Router = Router();
  * @apiName RegisterUser
  * @apiGroup User
  * 
- * @apiParam {String} alias Alias username
- * @apiParam {String} uname Unique username
+ * @apiParam {String} displayname Alias username
+ * @apiParam {String} username Unique username
  * @apiParam {String} email Unique email
- * @apiParam {String} secret User password
+ * @apiParam {String} password User password
  * 
  * @apiSuccessExample {json} Success-Response
  *      POST host/api/register
  *      {
- *          alias: "some alias",
- *          uname: "some unique username",
+ *          displayname: "some displayname",
+ *          username: "some unique username",
  *          email: "unique@e.mail",
- *          secret: "very secret password"
+ *          password: "very secret password"
  *      }
  * 
  *      HTTP/1.1 204 No Content
@@ -32,7 +32,7 @@ const router: Router = Router();
  * @apiSuccessExample {json} Unsuccessful-Response
  *      POST host/api/register
  *      {
- *          alias: "some alias",
+ *          displayname: "some displayname",
  *          email: "unique@e.mail"
  *      }
  * 
@@ -43,10 +43,10 @@ const router: Router = Router();
  * @apiError 400 Bad Request: Missing required params
  */
 router.post('/register', (req: Request, res: Response, next: NextFunction) => {
-    if(typeof req.body.alias !== 'string'
-        || typeof req.body.uname !== 'string'
+    if (typeof req.body.displayname !== 'string'
+        || typeof req.body.username !== 'string'
         || typeof req.body.email !== 'string'
-        || typeof req.body.secret !== 'string')
+        || typeof req.body.password !== 'string')
         return res.status(400).end();
     
     // Generate random salt
@@ -55,7 +55,7 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
     const salt = hash.getHash('HEX');
 
     // Create new user
-    const user = new User(req.body.uname, req.body.email, req.body.alias, getHashedSecret(req.body.secret, salt), salt);
+    const user = new User(req.body.username, req.body.email, req.body.displayname, getHashedSecret(req.body.password, salt), salt);
 
     createUser(user).then(
         () => res.status(204).end(),
@@ -72,12 +72,12 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
  * @apiHeader {string} Authorization Basic-Auth Authorization-header
  * 
  * @apiSuccessExample {json} Authorized-Response
- *      POST uname:secret@host/api/login
+ *      POST username:secret@host/api/login
  * 
  *      HTTP/1.1 204 No Content
  * 
  * @apiErrorExample {json} Unauthorized-Response
- *      POST uname:secret@host/api/login
+ *      POST username:secret@host/api/login
  * 
  *      HTTP/1.1 401 Unauthorized
  * 

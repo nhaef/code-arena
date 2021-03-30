@@ -67,7 +67,7 @@ export async function getClient(): Promise<MongoClient> {
 }
 
 
-export async function getUserByUname(uname: string, relations?: userRelations[]): Promise<User | undefined> {
+export async function getUserByUsername(uname: string, relations?: userRelations[]): Promise<User | undefined> {
 
     const connection = await getConnection();
 
@@ -78,7 +78,7 @@ export async function getUserByUname(uname: string, relations?: userRelations[])
 
 export async function createUser(user: User): Promise<User> {
 
-    if (await getUserByUname(user.username).catch(reason => {
+    if (await getUserByUsername(user.username).catch(reason => {
         throw reason;
     })) {
         return Promise.reject(new Error('Username already taken.'));
@@ -97,7 +97,7 @@ export async function createUser(user: User): Promise<User> {
 
 export async function deleteUserByUname(username: string): Promise<User | undefined> {
 
-    const user = await getUserByUname(username);
+    const user = await getUserByUsername(username);
 
     if (!user) return undefined;
 
@@ -105,7 +105,7 @@ export async function deleteUserByUname(username: string): Promise<User | undefi
 
     await connection.getRepository(User).delete({ username: username });
 
-    assert(await getUserByUname(username) === undefined, 'deleteUserByUsername failed to delete.');
+    assert(await getUserByUsername(username) === undefined, 'deleteUserByUsername failed to delete.');
     return user;
 }
 
@@ -188,7 +188,7 @@ export async function createEntry(entry: GameEntry, code: Code): Promise<GameEnt
     const connection = await getConnection();
 
     if (!await getGame(entry.game.name)) return Promise.reject(new Error('Game: ' + entry.game.name + ' does not exist.'));
-    if (!await getUserByUname(entry.submitter.username)) return Promise.reject(new Error('User: ' + entry.submitter.username + ' does not exist.'));
+    if (!await getUserByUsername(entry.submitter.username)) return Promise.reject(new Error('User: ' + entry.submitter.username + ' does not exist.'));
 
     const _id = await setEntryCode(code).catch((reason) => {
         console.log(reason);
