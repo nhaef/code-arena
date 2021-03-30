@@ -13,13 +13,13 @@ export class User {
     }
 
     public equals(user: User | undefined | null) {
-        if(!user)return false;
+        if (!user) return false;
 
         return this.username === user.username &&
-                this.email === user.email &&
-                this.displayname === user.displayname &&
-                this.passwordHash === user.passwordHash &&
-                this.salt === user.salt;
+            this.email === user.email &&
+            this.displayname === user.displayname &&
+            this.passwordHash === user.passwordHash &&
+            this.salt === user.salt;
     }
 
     @PrimaryColumn()
@@ -53,7 +53,7 @@ export function objIsUser(obj: any): obj is User {
 
 @Entity()
 export class Game {
-    
+
     constructor(name: string, description: string) {
         this.name = name;
         this.description = description;
@@ -61,7 +61,7 @@ export class Game {
 
     public equals(game: Game | undefined | null | void): boolean {
 
-        if(!game)return false;
+        if (!game) return false;
 
         return this.name === game.name &&
             this.description === game.description;
@@ -95,26 +95,26 @@ export class GameEntry {
     @Column()
     public submittedCodeID!: string;
 
-    @ManyToOne(type => User, User => User.gameEntries, { onDelete: "SET NULL" })
+    @ManyToOne(type => User, User => User.gameEntries, { onDelete: 'SET NULL' })
     public submitter!: User;
 
-    @ManyToOne(type => Game, Game => Game.entries, { onDelete: "CASCADE" })
+    @ManyToOne(type => Game, Game => Game.entries, { onDelete: 'CASCADE' })
     public game!: Game;
 
     public equals(other: GameEntry | null | undefined | void): boolean {
-        if(!other)return false;
+        if (!other) return false;
 
         return this.id === other.id &&
-                this.submittedCodeID === other.submittedCodeID;
+            this.submittedCodeID === other.submittedCodeID;
     }
 }
 
-//Stored in MongoDB
+// Stored in MongoDB
 export class Code {
     constructor(code: string);
     constructor(code: Code);
     constructor(code: string | Code) {
-        if(typeof code === "string")this.code = code;
+        if (typeof code === 'string') this.code = code;
         else {
             this.code = code.code;
             this._id = code._id;
@@ -123,7 +123,7 @@ export class Code {
 
     public equals(code: Code): boolean {
         return this.code === code.code &&
-                this._id.equals(code._id);
+            this._id.equals(code._id);
     }
 
     public code: string

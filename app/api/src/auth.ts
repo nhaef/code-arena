@@ -18,9 +18,9 @@ export function deserializeUser(uname: string, done: (err: any, user?: User) => 
 
 export const localStrategy: BasicStrategy = new BasicStrategy((uname: string, secret: string, done) => {
     getUserByUname(uname).then((user: User | undefined) => {
-        if(!user)return done(null, false);
+        if (!user) return done(null, false);
         const hashedSecret = getHashedSecret(secret, user.salt);
-        if(user.passwordHash === hashedSecret) done(null, user);
+        if (user.passwordHash === hashedSecret) done(null, user);
         else done(null, false);
     }).catch((reason) => done(reason));
 });

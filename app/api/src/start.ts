@@ -29,12 +29,3 @@ app.listen(port);
 
 // API up and running
 console.log(`Currently listening on Port ${port}`);
-
-
-//Test the db functionality
-import {test as dbTest} from './dbtest'
-
-//Only test when we want to test. Duh
-if (process.env.doTesting === undefined || process.env.doTesting)dbTest().catch((reason) => {
-        console.log(reason);
-    });
