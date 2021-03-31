@@ -76,12 +76,27 @@ export async function getUserByUsername(Username: string, relations?: userRelati
     return returnedUser;
 }
 
+export async function getUserByEmail(email: string, relations?: userRelations[]): Promise<User | undefined> {
+
+    const connection = await getConnection();
+
+    const returnedUser = await connection.getRepository(User).findOne({ where: { email: email }, relations: relations });
+
+    return returnedUser;
+}
+
 export async function createUser(user: User): Promise<User> {
 
     if (await getUserByUsername(user.username).catch(reason => {
         throw reason;
     })) {
         return Promise.reject(new Error('Username already taken.'));
+    }
+
+    if (await getUserByEmail(user.email).catch(reason => {
+        throw reason;
+    })) {
+        return Promise.reject(new Error('Email already taken.'));
     }
 
     const connection = await getConnection().catch(reason => {

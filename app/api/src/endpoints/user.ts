@@ -4,7 +4,7 @@ import passport from 'passport';
 import { createUser } from '../db';
 import { getHashedPassword } from '../auth';
 import sha from 'jssha';
-import { User} from '../models';
+import { User } from '../models';
 
 const router: Router = Router();
 
@@ -48,7 +48,7 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
         || typeof req.body.email !== 'string'
         || typeof req.body.password !== 'string')
         return res.status(400).end();
-    
+
     // Generate random salt
     const hash = new sha('SHA3-512', 'TEXT');
     hash.update(Math.random().toString());
@@ -59,7 +59,11 @@ router.post('/register', (req: Request, res: Response, next: NextFunction) => {
 
     createUser(user).then(
         () => res.status(204).end(),
-        () => res.status(500).end()
+        (reason) => {
+            if (reason instanceof Error && (<Error>reason).message === 'Username already taken.') res.status(400).end('Username already in use');
+            else if (reason instanceof Error && (<Error>reason).message === 'Email already taken.') res.status(400).end('Email already in use');
+            else res.status(500).end();
+        }
     );
 });
 
@@ -102,7 +106,7 @@ router.post('/login', passport.authenticate('basic'), (req: Request, res: Respon
  * 
  * @apiSuccess 204 Successfully logged out
  */
- router.post('/logout', (req: Request, res: Response) => {
+router.post('/logout', (req: Request, res: Response) => {
     req.logout();
 
     res.status(204).end();
