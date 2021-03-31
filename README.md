@@ -21,6 +21,13 @@ SESSION_SECRET={{ Insert Session-Secret here }}
 MONGO_USER={{ Insert MongoDB-User here }}
 MONGO_PASS={{ Insert MongoDB-Pass here }}
 MONGO_HOST={{ Insert MongoDB-Host here }}
+
+DATABASE_TYPE={{ Insert Database-Type here }}
+DATABASE_HOST={{ Insert Database-Host here }}
+DATABASE_PORT={{ Insert Database-Port here }}
+DATABASE_USERNAME={{ Insert Database-Username here }}
+DATABASE_PASSWORD={{ Insert Database-Password here }}
+DATABASE_NAME={{ Insert Database-Name here }}
 ```
 
 ### View Apidoc

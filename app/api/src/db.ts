@@ -8,6 +8,8 @@ type gameRelations = 'entries';
 type userRelations = 'gameEntries';
 type gameEntryRelations = 'game' | 'submitter';
 
+type mongoCollection = 'entries' | 'games';
+
 export function assert(condition: any, msg?: string): asserts condition {
     if (!condition) {
         throw new Error('Assertion error: ' + msg);
@@ -66,16 +68,27 @@ export async function getClient(): Promise<MongoClient> {
     return mongoClient;
 }
 
-
-export async function getUserByUsername(Username: string, relations?: userRelations[]): Promise<User | undefined> {
+/**
+ * Fetches an User from the database
+ * @param username Username of the user to be fetched
+ * @param relations List of relations which the returned User object should have filled in. These are fetched from the database aswell.
+ * @returns A filled in User object with all relations specified populated if a user with username 'username' exists, undefined otherwise
+ */
+export async function getUserByUsername(username: string, relations?: userRelations[]): Promise<User | undefined> {
 
     const connection = await getConnection();
 
-    const returnedUser = await connection.getRepository(User).findOne({ where: { username: Username }, relations: relations });
+    const returnedUser = await connection.getRepository(User).findOne({ where: { username: username }, relations: relations });
 
     return returnedUser;
 }
 
+/**
+ * Fetches an User from the database
+ * @param email E-mail of the user to be fetched
+ * @param relations List of relations which the returned User object should have filled in. These are fetched from the database aswell.
+ * @returns A filled in User object with all relations specified populated if a user with the email 'email' exists, undefined otherwise
+ */
 export async function getUserByEmail(email: string, relations?: userRelations[]): Promise<User | undefined> {
 
     const connection = await getConnection();
@@ -85,6 +98,11 @@ export async function getUserByEmail(email: string, relations?: userRelations[])
     return returnedUser;
 }
 
+/**
+ * Saves a User in the databases
+ * @param user User to be saved in the database
+ * @returns A User object filled with user's fields.
+ */
 export async function createUser(user: User): Promise<User> {
 
     if (await getUserByUsername(user.username).catch(reason => {
@@ -110,6 +128,11 @@ export async function createUser(user: User): Promise<User> {
     return createdUser;
 }
 
+/**
+ * Deletes a user from the database
+ * @param username Username of the user to be deleted
+ * @returns The deleted User object if a user with the username 'username' exists, undefined otherwise.
+ */
 export async function deleteUserByUsername(username: string): Promise<User | undefined> {
 
     const user = await getUserByUsername(username);
@@ -124,6 +147,11 @@ export async function deleteUserByUsername(username: string): Promise<User | und
     return user;
 }
 
+/**
+ * Fetches Game-Code from the db
+ * @param objectID ObjectID-String of the Game-Code to be fetched
+ * @returns The Code object fetched from the db, undefined if there is no Code with this id.
+ */
 export async function getGameCode(objectID: string): Promise<Code | undefined> {
     return getCodeFrom(new ObjectID(objectID), 'games');
 }
@@ -132,6 +160,11 @@ async function setGameCode(code: Code): Promise<string> {
     return (await setCodeIn(code, 'games')).toHexString();
 }
 
+/**
+ * Fetches Entry-Code from the db
+ * @param objectID ObjectID-String of the Entry-Code to be fetched
+ * @returns The Code object fetched from the db, undefined if there is no Code with this id.
+ */
 export async function getEntryCode(objectID: string): Promise<Code | undefined> {
     return getCodeFrom(new ObjectID(objectID), 'entries');
 }
@@ -140,6 +173,12 @@ async function setEntryCode(code: Code): Promise<string> {
     return (await setCodeIn(code, 'entries')).toHexString();
 }
 
+/**
+ * Saves a Game along with it's Webassembly code in the databases
+ * @param game Game to be saved in the database
+ * @param code Webassembly code which belongs to this game
+ * @returns A Game object filled with game's fields and has the objectID for the code filled in
+ */
 export async function createGame(game: Game, code: Code): Promise<Game> {
     const connection = await getConnection();
 
@@ -181,6 +220,12 @@ export async function createGame(game: Game, code: Code): Promise<Game> {
     return savedGame;
 }
 
+/**
+ * Fetches a Game along with associated relations from the database
+ * @param name Name of the game to be fetched
+ * @param relations List of relations which the returned Game object should have filled in. These are fetched from the database aswell.
+ * @returns A filled in Game object with all relations specified populated if a game with name 'name' exists, undefined otherwise
+ */
 export async function getGame(name: string, relations?: gameRelations[]): Promise<Game | undefined> {
     const connection = await getConnection();
 
@@ -189,16 +234,30 @@ export async function getGame(name: string, relations?: gameRelations[]): Promis
     return foundGame;
 }
 
+/**
+ * Deletes a game and it's associated Game-Code from the database
+ * @param name Name of the game to be deleted
+ * @returns The deleted Game object if a game with the name 'name' exists, undefined otherwise.
+ */
 export async function deleteGame(name: string): Promise<Game | undefined> {
     const connection = await getConnection();
 
     const foundGame = await connection.getRepository(Game).findOne(name);
 
-    if (foundGame) await connection.getRepository(Game).delete({ name: name });
+    if (foundGame) {
+        await connection.getRepository(Game).delete({ name: name });
+        deleteCodeFrom(new ObjectID(foundGame.gameCodeID), "games");
+    }
 
     return foundGame;
 }
 
+/**
+ * Saves a GameEntry along with it's Webassembly code in the databases
+ * @param entry GameEntry to be saved in the database
+ * @param code Webassembly code which belongs to this GameEntry
+ * @returns A GameEntry object filled with entry's fields and has the objectID for the code filled in
+ */
 export async function createEntry(entry: GameEntry, code: Code): Promise<GameEntry> {
     const connection = await getConnection();
 
@@ -247,6 +306,12 @@ export async function createEntry(entry: GameEntry, code: Code): Promise<GameEnt
     return savedEntry;
 }
 
+/**
+ * Fetches a GameEntry along with associated relations from the database
+ * @param id Name of the GameEntry to be fetched
+ * @param relations List of relations which the returned GameEntry object should have filled in. These are fetched from the database aswell.
+ * @returns A filled in GameEntry object with all relations specified populated if an entry with id 'id' exists, undefined otherwise
+ */
 export async function getEntry(id: number, relations?: gameEntryRelations[]): Promise<GameEntry | undefined> {
     const connection = await getConnection();
 
@@ -255,17 +320,25 @@ export async function getEntry(id: number, relations?: gameEntryRelations[]): Pr
     return foundEntry;
 }
 
+/**
+ * Deletes a GameEntry and it's associated Entry-Code from the database
+ * @param id ID of the GameEntry to be deleted
+ * @returns The deleted GameEntry object if an entry with the id 'id' exists, undefined otherwise.
+ */
 export async function deleteEntry(id: number): Promise<GameEntry | undefined> {
     const connection = await getConnection();
 
-    const foundGame = await connection.getRepository(GameEntry).findOne(id);
+    const foundEntry = await connection.getRepository(GameEntry).findOne(id);
 
-    if (foundGame) await connection.getRepository(GameEntry).delete({ id: id });
+    if (foundEntry) {
+        await connection.getRepository(GameEntry).delete({ id: id });
+        deleteCodeFrom(new ObjectID(foundEntry.submittedCodeID), "entries");
+    }
 
-    return foundGame;
+    return foundEntry;
 }
 
-async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> {
+async function setCodeIn(code: Code, collectionName: mongoCollection): Promise<ObjectID> {
     const collection = await getCollection<Code>(collectionName);
 
     // Create the ObjectID under which this code will be saved in MongoDB.
@@ -290,7 +363,7 @@ async function setCodeIn(code: Code, collectionName: string): Promise<ObjectID> 
     return id;
 }
 
-async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code | undefined> {
+async function getCodeFrom(objectID: ObjectID, collectionName: mongoCollection): Promise<Code | undefined> {
     const collection = await getCollection<Code>(collectionName);
 
     const code = await collection.findOne({ _id: objectID });
@@ -301,7 +374,7 @@ async function getCodeFrom(objectID: ObjectID, collectionName: string): Promise<
     return new Code(code);
 }
 
-async function deleteCodeFrom(objectID: ObjectID, collectionName: string): Promise<Code | undefined> {
+async function deleteCodeFrom(objectID: ObjectID, collectionName: mongoCollection): Promise<Code | undefined> {
     const collection = await getCollection<Code>(collectionName);
 
     const code = await collection.findOne({ _id: objectID });
