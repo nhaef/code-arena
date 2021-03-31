@@ -1,3 +1,6 @@
+//Needed for typeorm column types
+import 'reflect-metadata';
+
 import { config } from 'dotenv';
 config();
 

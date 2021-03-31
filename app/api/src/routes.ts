@@ -8,7 +8,7 @@ const router: Router = Router();
 // Setup Middlewares
 router.use(express.urlencoded({ extended: true }));
 router.use(express.json());
-router.use(session({ 
+router.use(session({
     secret: process.env.SESSION_SECRET || 'iLikeCats',
     resave: false,
     saveUninitialized: false

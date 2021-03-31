@@ -6,6 +6,8 @@
     "scripts": {
         "doc": "apidoc -i src/ -o apidoc/",
         "start": "node ./dist/api/src/start.js",
+        "test": "node ./dist/api/src/tests/test.js",
+        "build-test": "npm run build && npm run test",
         "build": "tsc",
         "build-start": "npm run build && npm run doc && npm run start"
     },
@@ -32,6 +34,9 @@
         "jssha": "^3.2.0",
         "mongodb": "^3.6.4",
         "passport": "^0.4.1",
-        "passport-http": "^0.3.0"
+        "passport-http": "^0.3.0",
+        "pg": "^8.5.1",
+        "reflect-metadata": "^0.1.13",
+        "typeorm": "^0.2.31"
     }
 }

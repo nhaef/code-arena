@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { Router } from "express";
 import passport from 'passport';
 import { createUser } from '../db';
-import { User } from '../../../types/user';
-import { getHashedSecret } from '../auth';
+import { getHashedPassword } from '../auth';
 import sha from 'jssha';
+import { User } from '../models';
 
 const router: Router = Router();
 
@@ -13,18 +13,18 @@ const router: Router = Router();
  * @apiName RegisterUser
  * @apiGroup User
  * 
- * @apiParam {String} alias Alias username
- * @apiParam {String} uname Unique username
+ * @apiParam {String} displayname Alias username
+ * @apiParam {String} username Unique username
  * @apiParam {String} email Unique email
- * @apiParam {String} secret User password
+ * @apiParam {String} password User password
  * 
  * @apiSuccessExample {json} Success-Response
  *      POST host/api/register
  *      {
- *          alias: "some alias",
- *          uname: "some unique username",
+ *          displayname: "some displayname",
+ *          username: "some unique username",
  *          email: "unique@e.mail",
- *          secret: "very secret password"
+ *          password: "very secret password"
  *      }
  * 
  *      HTTP/1.1 204 No Content
@@ -32,7 +32,7 @@ const router: Router = Router();
  * @apiSuccessExample {json} Unsuccessful-Response
  *      POST host/api/register
  *      {
- *          alias: "some alias",
+ *          displayname: "some displayname",
  *          email: "unique@e.mail"
  *      }
  * 
@@ -40,56 +40,54 @@ const router: Router = Router();
  * 
  * @apiSuccess 204 Successfully registered user
  * 
- * @apiError 400 Bad Request
+ * @apiError 400 Bad Request: Missing required params
  */
 router.post('/register', (req: Request, res: Response, next: NextFunction) => {
-    if(typeof req.body.alias !== 'string'
-        || typeof req.body.uname !== 'string'
+    if (typeof req.body.displayname !== 'string'
+        || typeof req.body.username !== 'string'
         || typeof req.body.email !== 'string'
-        || typeof req.body.secret !== 'string')
-        return res.status(400).end('Missing required params');
-    
+        || typeof req.body.password !== 'string')
+        return res.status(400).end();
+
     // Generate random salt
     const hash = new sha('SHA3-512', 'TEXT');
     hash.update(Math.random().toString());
     const salt = hash.getHash('HEX');
 
-    //Create new user
-    const user: User = {
-        alias: req.body.alias,
-        uname: req.body.uname,
-        email: req.body.email,
-        secret: getHashedSecret(req.body.secret, salt),
-        salt: salt
-    };
+    // Create new user
+    const user = new User(req.body.username, req.body.email, req.body.displayname, getHashedPassword(req.body.password, salt), salt);
 
     createUser(user).then(
         () => res.status(204).end(),
-        () => res.status(400).end('Username or email already exists')
+        (reason) => {
+            if (reason instanceof Error && (<Error>reason).message === 'Username already taken.') res.status(400).end('Username already in use');
+            else if (reason instanceof Error && (<Error>reason).message === 'Email already taken.') res.status(400).end('Email already in use');
+            else res.status(500).end();
+        }
     );
 });
 
 /**
  * @api {post} /api/login Login existing user
- * @apiDescription Endpoint for Basic Auth Login
+ * @apiDescription Endpoint for Basic Auth
  * @apiName LoginUser
  * @apiGroup User
  * 
  * @apiHeader {string} Authorization Basic-Auth Authorization-header
  * 
  * @apiSuccessExample {json} Authorized-Response
- *      POST uname:secret@host/api/login
+ *      POST username:secret@host/api/login
  * 
  *      HTTP/1.1 204 No Content
  * 
  * @apiErrorExample {json} Unauthorized-Response
- *      POST uname:secret@host/api/login
+ *      POST username:secret@host/api/login
  * 
  *      HTTP/1.1 401 Unauthorized
  * 
- * @apiSuccess 204 Successfully logged in
+ * @apiSuccess 204 No Content: Successfully logged in
  * 
- * @apiError 401 username or secret incorrect
+ * @apiError 401 Unauthorized: username or secret incorrect
  */
 router.post('/login', passport.authenticate('basic'), (req: Request, res: Response) => {
     res.status(204).end();
@@ -108,7 +106,7 @@ router.post('/login', passport.authenticate('basic'), (req: Request, res: Respon
  * 
  * @apiSuccess 204 Successfully logged out
  */
- router.post('/logout', (req: Request, res: Response) => {
+router.post('/logout', (req: Request, res: Response) => {
     req.logout();
 
     res.status(204).end();
